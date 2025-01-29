@@ -25,10 +25,9 @@ lexical Word
   = [A-Za-z0-9\-]+ !>> [A-Za-z0-9]
   | ![A-Za-z0-9\-]+ !>> ![A-Za-z0-9]
   ;
- 
 
 // we test using all pico programs in the library
-public set[loc] programs = find(|project://rascal-lucene/|, "pico");
+public set[loc] programs = find(|project://rascal-lucene/src|, "pico");
 
 // next to the src field we add comments and an extra field to index on.
 data Document(loc comments = |unknown:///|, str extra = "");
@@ -99,13 +98,13 @@ void extraSearch() {
 }
 
 test bool extraTermsTest() = listTerms(indexFolder, "extra") == {
-  <"est",2>,
-  <"tbmen",2>,
-  <"vires",2>,
-  <"dbndb",2>,
-  <"voluntbs",2>,
-  <"desint",2>,
-  <"lbu",2>
+  <"est",1>,
+  <"tbmen",1>,
+  <"vires",1>,
+  <"dbndb",1>,
+  <"voluntbs",1>,
+  <"desint",1>,
+  <"lbu",1>
 };
 
 test bool identifierTest() = document(loc l) <- searchIndex(indexFolder, "src:repnr") && l == |project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|;
