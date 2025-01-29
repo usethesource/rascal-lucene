@@ -10,6 +10,17 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 }
+@synopsis{Bridges Rascal grammars and parser generation to the Lucene "Analyzer" and "Tokenizer" interfaces.}
+@description{
+By leveraging the information in ((ParseTree)) instances we can provide, selectively, tokens for any source file that
+we have a grammar for:
+* ((analyzerFromGrammar)) combines a ((tokenizerFromGrammar)) with a ((lowerCaseFilter)). It makes an entire source file searchable.
+* ((identifierAnalyzerFromGrammar)) selects only the identifiers in the source text, ignoring keywords and comments and such.
+* ((commentAnalyzerFromGrammar)) focuses on the words in source code comments.
+
+This functionality is based on the ((analysis::text::search::Lucene)) module, and its underlying adapter that bridges Rascal callbacks
+to Lucene's search framework.
+}
 module analysis::text::search::Grammars
 
 extend analysis::text::search::Lucene;

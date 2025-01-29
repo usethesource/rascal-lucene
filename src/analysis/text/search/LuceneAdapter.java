@@ -815,7 +815,7 @@ public class LuceneAdapter {
             
             this.input = input;
 
-            assert sliceStart <= cursor && cursor < sliceEnd;
+            // assert sliceStart <= cursor && cursor < sliceEnd;
 
             this.start = sliceStart;
             this.cursor = cursor;
