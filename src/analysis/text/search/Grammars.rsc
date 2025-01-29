@@ -12,7 +12,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 }
 @synopsis{Bridges Rascal grammars and parser generation to the Lucene "Analyzer" and "Tokenizer" interfaces.}
 @description{
-By leveraging the information in ((ParseTree)) instances we can provide, selectively, tokens for any source file that
+By leveraging the information in ((module:ParseTree)) instances we can provide, selectively, tokens for any source file that
 we have a grammar for:
 * ((analyzerFromGrammar)) combines a ((tokenizerFromGrammar)) with a ((lowerCaseFilter)). It makes an entire source file searchable.
 * ((identifierAnalyzerFromGrammar)) selects only the identifiers in the source text, ignoring keywords and comments and such.
