@@ -1,6 +1,6 @@
 # Rascal-lucene
 
-This package provides a two-way intergration of Rascal with Lucene:
+This package provides a two-way integration of Rascal with Lucene:
 * inject Rascal functions for key components in the Lucene analysis and search pipelines (think Tokenizers and Analyzers)
 * call Lucene analysis and search components directly from Rascal
 * and finally compose and use fully functional Lucene pipelines
