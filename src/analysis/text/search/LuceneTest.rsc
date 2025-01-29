@@ -28,7 +28,7 @@ lexical Word
  
 
 // we test using all pico programs in the library
-public set[loc] programs = find(|std:///|, "pico");
+public set[loc] programs = find(|project://rascal-lucene/|, "pico");
 
 // next to the src field we add comments and an extra field to index on.
 data Document(loc comments = |unknown:///|, str extra = "");
@@ -108,12 +108,12 @@ test bool extraTermsTest() = listTerms(indexFolder, "extra") == {
   <"lbu",2>
 };
 
-test bool identifierTest() = document(loc l) <- searchIndex(indexFolder, "src:repnr") && l == |std:///demo/lang/Pico/programs/Fac.pico|;
-test bool analyzerTest1() = size(analyzeDocument(|std:///demo/lang/Pico/programs/Fac.pico|, analyzer=an())) == 25;
-test bool analyzerTest2() = size(analyzeDocument(|std:///demo/lang/Pico/programs/Fac.pico|, analyzer=commentAnalyzer())) == 7;
-test bool searchDocTest1() = size(searchDocument(|std:///demo/lang/Pico/programs/Fac.pico|, "repnr", analyzer=an())) == 5;
-test bool searchDocTest2() = size(searchDocument(|std:///demo/lang/Pico/programs/Fac.pico|, "repnr", analyzer=commentAnalyzer())) == 0;
-test bool searchDocTest3() = size(searchDocument(|std:///demo/lang/Pico/programs/Fac.pico|, "check", analyzer=commentAnalyzer())) == 1;
+test bool identifierTest() = document(loc l) <- searchIndex(indexFolder, "src:repnr") && l == |project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|;
+test bool analyzerTest1() = size(analyzeDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, analyzer=an())) == 25;
+test bool analyzerTest2() = size(analyzeDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, analyzer=commentAnalyzer())) == 7;
+test bool searchDocTest1() = size(searchDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, "repnr", analyzer=an())) == 5;
+test bool searchDocTest2() = size(searchDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, "repnr", analyzer=commentAnalyzer())) == 0;
+test bool searchDocTest3() = size(searchDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, "check", analyzer=commentAnalyzer())) == 1;
 
 void main() {
   picoIndex();
