@@ -27,7 +27,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <lucence-version>7.5.0</lucence-version>
+        <lucene-version>7.5.0</lucene-version>
+        <rascal-version>0.40.11</rascal-version>
+        <rascal-maven-version>0.28.9-BOOT1</rascal-maven-version>
     </properties>
 
     <licenses>
@@ -37,8 +39,6 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-
-
     <build>
         <sourceDirectory>src</sourceDirectory>
         <resources>
@@ -70,7 +70,7 @@
             <plugin>
                 <groupId>org.rascalmpl</groupId>
                 <artifactId>rascal-maven-plugin</artifactId>
-                <version>${rascal-maven.version}</version>
+                <version>${rascal-maven-version}</version>
                 <configuration>
                     <errorsAsWarnings>false</errorsAsWarnings> <!-- only allowed during intermediate bootstrap cycles -->
                     <bin>${project.build.outputDirectory}</bin>
@@ -122,7 +122,7 @@
                                 <ignore>${project.basedir}/src/org/rascalmpl/library/lang/rascal</ignore>
                             </ignores>
                         </configuration>
-                        </execution> -->
+                    </execution> 
                 </executions>
             </plugin>
 
@@ -205,6 +205,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.rascalmpl</groupId>
+            <artifactId>rascal</artifactId>
+            <version>0.40.11</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.13.2</version>
@@ -212,22 +217,22 @@
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
-            <version>${lucence-version}</version>
+            <version>${lucene-version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-highlighter</artifactId>
-            <version>${lucence-version}</version>
+            <version>${lucene-version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analyzers-common</artifactId>
-            <version>${lucence-version}</version>
+            <version>${lucene-version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-queryparser</artifactId>
-            <version>${lucence-version}</version>
+            <version>${lucene-version}</version>
         </dependency>
     </dependencies>
 </project>
