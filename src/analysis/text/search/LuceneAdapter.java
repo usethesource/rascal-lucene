@@ -950,6 +950,11 @@ public class LuceneAdapter {
                 reg.mkDirectory(src);
             }
         }
+
+        @Override
+        public String toString() {
+            return src.toString();
+        }
         
         @Override
         public String[] listAll() throws IOException {
