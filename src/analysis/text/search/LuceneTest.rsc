@@ -70,13 +70,15 @@ Analyzer indexAnalyzer() = fieldsAnalyzer(an(), comments=commentAnalyzer(), extr
 // where we store the lucene index (may be any loc as long as its a directory)
 loc indexFolder = |tmp:///picoIndex|;
  
-void picoIndex() {
+bool picoIndex() {
   // always start afresh (for testing purposes)
   remove(indexFolder);
   
   docs = {document(p, comments=p, extra="<for (w <- extraWords) {><w> <}>"[..-1]) | p <- programs};
   
   createIndex(indexFolder, docs, analyzer=indexAnalyzer());
+
+  return true;
 }
 
 void picoSearch(str term) {  
@@ -107,12 +109,12 @@ test bool extraTermsTest() = listTerms(indexFolder, "extra") == {
   <"lbu",1>
 };
 
-test bool identifierTest() = document(loc l) <- searchIndex(indexFolder, "src:repnr") && l == |project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|;
-test bool analyzerTest1() = size(analyzeDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, analyzer=an())) == 25;
-test bool analyzerTest2() = size(analyzeDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, analyzer=commentAnalyzer())) == 7;
-test bool searchDocTest1() = size(searchDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, "repnr", analyzer=an())) == 5;
-test bool searchDocTest2() = size(searchDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, "repnr", analyzer=commentAnalyzer())) == 0;
-test bool searchDocTest3() = size(searchDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, "check", analyzer=commentAnalyzer())) == 1;
+test bool identifierTest() = picoIndex() && document(loc l) <- searchIndex(indexFolder, "src:repnr") && l == |project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|;
+test bool analyzerTest1() = picoIndex() && size(analyzeDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, analyzer=an())) == 25;
+test bool analyzerTest2() = picoIndex() &&  size(analyzeDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, analyzer=commentAnalyzer())) == 7;
+test bool searchDocTest1() = picoIndex() && size(searchDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, "repnr", analyzer=an())) == 5;
+test bool searchDocTest2() = picoIndex() && size(searchDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, "repnr", analyzer=commentAnalyzer())) == 0;
+test bool searchDocTest3() = picoIndex() && size(searchDocument(|project://rascal-lucene/src/analysis/text/search/testdata/Fac.pico|, "check", analyzer=commentAnalyzer())) == 1;
 
 void main() {
   picoIndex();
