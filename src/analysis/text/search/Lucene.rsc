@@ -65,31 +65,31 @@ data Filter
   | \filterClass(str filterClassName)              // use an existing filterclass (if it has a nullary constructor)
   ;  
 
-@javaClass{org.rascalmpl.library.analysis.text.search.LuceneAdapter}
+@javaClass{analysis.text.search.LuceneAdapter}
 @synopsis{Creates a Lucene index at a given folder location from the given set of Documents, using a given set of text analyzers}
 java void createIndex(loc index, set[Document] documents, Analyzer analyzer = standardAnalyzer(), str charset="UTF-8", bool inferCharset=!(charset?));
 
-@javaClass{org.rascalmpl.library.analysis.text.search.LuceneAdapter}
+@javaClass{analysis.text.search.LuceneAdapter}
 @synopsis{Searches a Lucene index indicated by the indexFolder by analyzing a query with a given set of text analyzers and then matching the query to the index.}
 java set[Document] searchIndex(loc index, str query, Analyzer analyzer = standardAnalyzer(), int max = 10);
 
-@javaClass{org.rascalmpl.library.analysis.text.search.LuceneAdapter}
+@javaClass{analysis.text.search.LuceneAdapter}
 @synopsis{Searches a document for a query by analyzing it with a given analyzer and listing the hits inside the document, for debugging and reporting purposes.}
 java list[loc] searchDocument(loc doc, str query, Analyzer analyzer = standardAnalyzer(), int max = 10, str charset="UTF-8", bool inferCharset=!(charset?));
 
-@javaClass{org.rascalmpl.library.analysis.text.search.LuceneAdapter}
+@javaClass{analysis.text.search.LuceneAdapter}
 @synopsis{Simulate analyzing a document source location like `createIndex` would do, for debugging purposes} 
 java list[Term] analyzeDocument(loc doc, Analyzer analyzer = standardAnalyzer());
 
-@javaClass{org.rascalmpl.library.analysis.text.search.LuceneAdapter}
+@javaClass{analysis.text.search.LuceneAdapter}
 @synopsis{Simulate analyzing a document source string like `createIndex` would do, for debugging purposes} 
 java list[Term] analyzeDocument(str doc, Analyzer analyzer = standardAnalyzer());
 
-@javaClass{org.rascalmpl.library.analysis.text.search.LuceneAdapter}
+@javaClass{analysis.text.search.LuceneAdapter}
 @synopsis{Inspect the terms stored in an index for debugging purposes (what did the analyzers do to the content of the documents?)}
 java rel[str chars, int frequency] listTerms(loc index, str field, int max = 10);
 
- @javaClass{org.rascalmpl.library.analysis.text.search.LuceneAdapter}
+ @javaClass{analysis.text.search.LuceneAdapter}
 @synopsis{Inspect the fields stored in an index for debugging purposes (which fields have been indexed, for how many documents, and how many terms?)}
 java rel[str field, int docCount, int sumTotalTermFreq] listFields(loc index); 
 
