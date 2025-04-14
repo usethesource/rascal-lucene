@@ -150,6 +150,8 @@ public class LuceneAdapter {
             }
         }
         catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("HALLO: " + e);
             throw RuntimeExceptionFactory.io(vf.string(e.getMessage()), null, null);
         }
     }
