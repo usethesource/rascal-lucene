@@ -88,5 +88,5 @@ default bool isToken(Tree _) = false;
 bool isLexical(appl(prod(Symbol s, _, _), _)) = true when lex(_) := s || label(_, lex(_)) := s;
 default bool isLexical(Tree _) = false;
 
-bool isComment(Tree t) = true when t has prod, /"category"("Comment") := t.prod;
+bool isComment(Tree t) = true when t has prod, /"category"("comment") := t.prod;
 default bool isComment(Tree _) = false;
