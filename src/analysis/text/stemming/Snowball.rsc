@@ -55,10 +55,10 @@ This library wrapped into a single function supports Armenian, Basque, Catalan, 
 Dutch, English, Finnish, French, German, Hungarian, Irish, Italian, Lithuanian, Norwegian, Portugese,
 Romanian, Russian, Spanish, Swedish and Turkish.
 }  
-@javaClass{org.rascalmpl.library.analysis.text.stemming.Snowball}
+@javaClass{analysis.text.stemming.Snowball}
 java str stem(str word, Language lang=english());
 
-@javaClass{org.rascalmpl.library.analysis.text.stemming.Snowball}
+@javaClass{analysis.text.stemming.Snowball}
 
 @synopsis{Kraaij-Pohlmann is a well-known stemmer for the Dutch language.}
 @description{
@@ -66,7 +66,7 @@ See http://snowball.tartarus.org/algorithms/kraaij_pohlmann/stemmer.html
 }
 java str kraaijPohlmannStemmer(str word);
 
-@javaClass{org.rascalmpl.library.analysis.text.stemming.Snowball}
+@javaClass{analysis.text.stemming.Snowball}
 
 @synopsis{Porter stemming is a "standard" stemming algorithm for English of sorts.}
 @description{
@@ -74,7 +74,7 @@ See http://snowball.tartarus.org/algorithms/porter/stemmer.html for more informa
 }
 java str porterStemmer(str word);
 
-@javaClass{org.rascalmpl.library.analysis.text.stemming.Snowball}
+@javaClass{analysis.text.stemming.Snowball}
 
 @synopsis{Lovins designed the first stemmer according to the Tartarus website.}
 @description{
