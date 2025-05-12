@@ -42,8 +42,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <lucene-version>7.5.0</lucene-version>
-        <rascal-version>0.41.0-RC11</rascal-version>
-        <rascal-maven-version>0.29.0-RC2-SNAPSHOT</rascal-maven-version>
+        <rascal-version>0.41.0-RC42</rascal-version>
+        <rascal-maven-version>0.30.0-RC25</rascal-maven-version>
         <maven.compiler.release>11</maven.compiler.release>
     </properties>
 
@@ -93,9 +93,7 @@
                     <srcs>
                         <src>${project.basedir}/src</src>
                     </srcs>
-                    <sourceLookup>|mvn:///org.rascalmpl--rascal--${project.version}|</sourceLookup>
                     <issues>|https://github.com/usethesource/rascal-lucene/issues|</issues>
-                    <enableStandardLibrary>false</enableStandardLibrary>
                 </configuration>
                 <executions>
                     <execution>
@@ -119,8 +117,6 @@
                             <goal>tutor</goal>
                         </goals>
                         <configuration>
-                            <isPackageCourse>true</isPackageCourse>
-                            <errorsAsWarnings>false</errorsAsWarnings>
                             <bin>${project.build.outputDirectory}</bin>
                             <license>${project.basedir}/LICENSE.md</license>
                             <sources>|http://github.com/usethesource/rascal/blob/main|</sources>
@@ -217,7 +213,7 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal</artifactId>
-            <version>0.41.0-RC11</version>
+            <version>0.41.0-RC42</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
