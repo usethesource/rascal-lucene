@@ -728,9 +728,9 @@ public class LuceneAdapter {
             @SuppressWarnings("unchecked")
             Class<T> cls = (Class<T>) getClass().getClassLoader().loadClass(name);
             
-           return cls.newInstance();
+           return cls.getConstructor().newInstance();
         }
-        catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException e) {
+        catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
             throw new IllegalArgumentException(name, e);
         }
     }
