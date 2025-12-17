@@ -63,14 +63,14 @@ Tokenizer commentTokenizerFromGrammar(type[&T <: Tree] grammar) = tokenizer(list
      return [term(input, |lucene:///|(0, size(input)), "entire input")];
 });
 
-list[Tree] tokens(amb({Tree x, *_}), bool(Tree) isToken) = tokens(x, isToken);
+list[Tree] tokens(amb({Tree x, *_}), bool(Tree) isTokenPredicate) = tokens(x, isTokenPredicate);
 
-default list[Tree] tokens(Tree tok, bool(Tree) isToken) {
-  if (isToken(tok)) {
+default list[Tree] tokens(Tree tok, bool(Tree) isTokenPredicate) {
+  if (isTokenPredicate(tok)) {
     return [tok];
   }
   else {
-    return [*tokens(a, isToken) | tok has args, a <- tok.args];
+    return [*tokens(a, isTokenPredicate) | tok has args, a <- tok.args];
   }
 }
 
