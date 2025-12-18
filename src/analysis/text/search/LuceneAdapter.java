@@ -457,16 +457,20 @@ public class LuceneAdapter {
     }
 
     private Analyzer makeFunctionAnalyzer(IConstructor tokenizer, IList filters) throws IOException {
-         final Tokenizer tokens = makeTokenizer(tokenizer);
-         TokenStream stream = tokens;
-         
-         for (IValue elem : filters) {
-             stream = makeFilter(stream, (IConstructor) elem);
-         }
-         
-         final TokenStream filtered = stream;
-         
          return new Analyzer() {
+            private Tokenizer tokens = makeTokenizer(tokenizer);
+            private TokenStream stream = tokens;
+            final TokenStream filtered;
+
+            // instance initializer (!)
+            {
+                for (IValue elem : filters) {
+                    stream = makeFilter(stream, (IConstructor) elem);
+                }
+
+                filtered = stream;
+            }
+
             @Override
             protected TokenStreamComponents createComponents(String fieldName) {
                     return new TokenStreamComponents(tokens, filtered);
