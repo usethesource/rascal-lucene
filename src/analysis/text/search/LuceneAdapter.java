@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.logging.log4j.util.Strings;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.FilteringTokenFilter;
 import org.apache.lucene.analysis.TokenFilter;
@@ -81,9 +82,11 @@ import org.apache.lucene.store.LockFactory;
 import org.apache.lucene.store.OutputStreamIndexOutput;
 import org.apache.lucene.store.SingleInstanceLockFactory;
 import org.apache.lucene.util.BytesRef;
+import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.exceptions.RuntimeExceptionFactory;
 import org.rascalmpl.exceptions.Throw;
 import org.rascalmpl.interpreter.control_exceptions.MatchFailed;
+import org.rascalmpl.interpreter.staticErrors.StaticError;
 import org.rascalmpl.library.Prelude;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
@@ -121,6 +124,7 @@ public class LuceneAdapter {
     private final TypeFactory tf = TypeFactory.getInstance();
     private final Map<ISourceLocation, SingleInstanceLockFactory> lockFactories;
     private final TypeStore store = new TypeStore();
+    private final IRascalMonitor monitor;
     
     private final Type Document = tf.abstractDataType(store, "Document");
     private final Type docCons = tf.constructor(store, Document, "document", tf.sourceLocationType(), "src");
@@ -130,8 +134,10 @@ public class LuceneAdapter {
     
     private final StandardTextReader valueParser = new StandardTextReader();
     
-    public LuceneAdapter(IValueFactory vf) {
+    
+    public LuceneAdapter(IValueFactory vf, IRascalMonitor monitor) {
         this.vf = vf;
+        this.monitor = monitor;
         lockFactories = new HashMap<>();
     }
     
@@ -245,22 +251,50 @@ public class LuceneAdapter {
             throw RuntimeExceptionFactory.io(vf.string(e.getMessage()), null, null);
         }
         catch (ParseException e) {
+            String entireDocument = Prelude.readFile(vf, false, doc, charset.getValue(), inferCharset.getValue()).getValue();
+
             int beginLine = e.currentToken.next.beginLine;
             int beginColumn = e.currentToken.next.beginColumn;
-            // TODO: fix the coordinates below
-            throw RuntimeExceptionFactory.parseError(vf.sourceLocation(doc, beginLine, beginColumn));
-
+            int endLine = e.currentToken.next.endLine;
+            int endColumn = e.currentToken.next.endColumn;
+            int startOffset = offsetOf(entireDocument, beginLine, beginColumn);
+            int endOffset = offsetOf(entireDocument, endLine, endColumn);
+            
+            throw RuntimeExceptionFactory.parseError(vf.sourceLocation(doc, startOffset, endOffset - startOffset, beginLine, endLine, beginColumn, endColumn));
         }
         catch (ArithmeticException e) {
             throw RuntimeExceptionFactory.arithmeticException(e.getMessage(), null, null);
         }
         catch (InvalidTokenOffsetsException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            return vf.list();
+            throw RuntimeExceptionFactory.illegalArgument(vf.string(doc + ": invalid token offsets: " + e.getMessage()));
         }
     }
     
+    public static int offsetOf(String text, int line, int column) {
+        int currentLine = 0;
+        int currentColumn = 0;
+        int currentOffset = 0;
+
+        int currentChar16 = 0; // UTF-16 index
+        while (currentChar16 < text.length() && (currentLine < line || currentColumn < column)) {
+            int cp = text.codePointAt(currentChar16);
+            currentChar16 += Character.charCount(cp);
+            currentOffset++; 
+
+            if (cp == '\n') {
+                currentLine++;
+                currentColumn = 0;
+            } else {
+                currentColumn++;
+            }
+        }
+
+        assert currentLine == line && currentColumn == column;
+
+        return currentOffset;
+    }
+
+
     public IList analyzeDocument(IString doc, IConstructor analyzer) {
         return analyzeDocument(URIUtil.rootLocation("string"), new StringReader(doc.getValue()), analyzer);
     }
@@ -335,11 +369,16 @@ public class LuceneAdapter {
         } catch (IOException e) {
             throw RuntimeExceptionFactory.io(vf.string(e.getMessage()), null, null);
         }
-        catch (ParseException e) {
+        catch (ParseException e) { 
+            // that's the query parser complaining
             int beginLine = e.currentToken.next.beginLine;
             int beginColumn = e.currentToken.next.beginColumn;
-            // TODO: fix the coordinates below
-            throw RuntimeExceptionFactory.parseError(vf.sourceLocation(indexFolder, beginLine, beginColumn));
+            int endLine = e.currentToken.next.endLine;
+            int endColumn = e.currentToken.next.endColumn;
+            int startOffset = offsetOf(query.getValue(), beginLine, beginColumn);
+            int endOffset = offsetOf(query.getValue(), endLine, endColumn);
+            
+            throw RuntimeExceptionFactory.parseError(vf.sourceLocation(URIUtil.rootLocation("query"), startOffset, endOffset - startOffset, beginLine, endLine, beginColumn, endColumn));
         }
     }
 
@@ -680,9 +719,19 @@ public class LuceneAdapter {
                         IList terms = function.call(parameter);
                         result = terms.iterator();
                     }
-                    catch (Throwable e) {
-                        // the parsing call back failed. TODO: report this but the code should be robust.
-                        result = vf.list(vf.constructor(termCons, parameter, vf.sourceLocation(URIUtil.rootLocation("error"), 0, parameter.length()), vf.string("parse-error"))).iterator();
+                    catch (StaticError e) {
+                        var errorLoc = e.getLocation();
+
+                        monitor.warning("tokenizer: " + e.getMessage(), errorLoc);
+                        
+                        result = vf.list(vf.constructor(termCons, parameter, errorLoc, vf.string("static-error"))).iterator();
+                    }
+                    catch (Throw e) {
+                        var errorLoc = e.getLocation();
+
+                        monitor.warning("tokenizer:" + e.getMessage(), errorLoc);
+                        
+                        result = vf.list(vf.constructor(termCons, parameter, errorLoc, vf.string("runtime-error"))).iterator();
                     }
                 }
                 

@@ -49,7 +49,7 @@ data Language
   ;
   
 
-@synopsis{Stemming algorithms from the Tartarus Snowball [the Snowball homepage](http://snowball.tartarus.org) for different languages.}
+@synopsis{Stemming algorithms from the Tartarus Snowball [the Snowball homepage](http://snowball.tartarus.org) for various languages.}
 @description{
 This library wrapped into a single function supports Armenian, Basque, Catalan, Danish,
 Dutch, English, Finnish, French, German, Hungarian, Irish, Italian, Lithuanian, Norwegian, Portugese,
