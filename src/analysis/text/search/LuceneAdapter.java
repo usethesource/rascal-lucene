@@ -715,24 +715,8 @@ public class LuceneAdapter {
             public boolean incrementToken() throws IOException {
                 if (result == null) {
                     IString parameter = vf.string(Prelude.consumeInputStream(input));
-                    try {
-                        IList terms = function.call(parameter);
-                        result = terms.iterator();
-                    }
-                    catch (StaticError e) {
-                        var errorLoc = e.getLocation();
-
-                        monitor.warning("tokenizer: " + e.getMessage(), errorLoc);
-                        
-                        result = vf.list(vf.constructor(termCons, parameter, errorLoc, vf.string("static-error"))).iterator();
-                    }
-                    catch (Throw e) {
-                        var errorLoc = e.getLocation();
-
-                        monitor.warning("tokenizer:" + e.getMessage(), errorLoc);
-                        
-                        result = vf.list(vf.constructor(termCons, parameter, errorLoc, vf.string("runtime-error"))).iterator();
-                    }
+                    IList terms = function.call(parameter);
+                    result = terms.iterator();
                 }
                 
                 if (result.hasNext()) {

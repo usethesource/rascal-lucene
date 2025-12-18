@@ -57,7 +57,7 @@ Tokenizer identifierTokenizerFromGrammar(type[&T <: Tree] grammar) = tokenizer(l
 Tokenizer commentTokenizerFromGrammar(type[&T <: Tree] grammar) = tokenizer(list[Term] (str input) {
    try {
      tr = parse(grammar, input, |lucene:///|, allowAmbiguity=true);
-     return [term("<comment>", comment@\loc, "<type(comment.prod.def,())>") | comment <- tokens(tr, isComment)];
+     return [term("<comment>", comment@\loc, "<type(comment.prod.def,())>") | comment <- tokens(tr, isComment), comment@\loc?];
    }
    catch ParseError(_):
      return [term(input, |lucene:///|(0, size(input)), "entire input")];
