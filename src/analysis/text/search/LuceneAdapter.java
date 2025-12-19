@@ -13,23 +13,28 @@
 package analysis.text.search;
 
 import java.io.EOFException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
+import java.nio.channels.FileChannel;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.util.Strings;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.FilteringTokenFilter;
 import org.apache.lucene.analysis.TokenFilter;
@@ -82,14 +87,14 @@ import org.apache.lucene.store.LockFactory;
 import org.apache.lucene.store.OutputStreamIndexOutput;
 import org.apache.lucene.store.SingleInstanceLockFactory;
 import org.apache.lucene.util.BytesRef;
-import org.rascalmpl.debug.IRascalMonitor;
+import org.apache.lucene.util.Constants;
 import org.rascalmpl.exceptions.RuntimeExceptionFactory;
 import org.rascalmpl.exceptions.Throw;
 import org.rascalmpl.interpreter.control_exceptions.MatchFailed;
-import org.rascalmpl.interpreter.staticErrors.StaticError;
 import org.rascalmpl.library.Prelude;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
+import org.rascalmpl.values.IRascalValueFactory;
 import org.rascalmpl.values.functions.IFunction;
 
 import io.usethesource.vallang.IBool;
@@ -124,7 +129,7 @@ public class LuceneAdapter {
     private final TypeFactory tf = TypeFactory.getInstance();
     private final Map<ISourceLocation, SingleInstanceLockFactory> lockFactories;
     private final TypeStore store = new TypeStore();
-    private final IRascalMonitor monitor;
+
     
     private final Type Document = tf.abstractDataType(store, "Document");
     private final Type docCons = tf.constructor(store, Document, "document", tf.sourceLocationType(), "src");
@@ -135,9 +140,8 @@ public class LuceneAdapter {
     private final StandardTextReader valueParser = new StandardTextReader();
     
     
-    public LuceneAdapter(IValueFactory vf, IRascalMonitor monitor) {
+    public LuceneAdapter(IValueFactory vf) {
         this.vf = vf;
-        this.monitor = monitor;
         lockFactories = new HashMap<>();
     }
     
@@ -230,6 +234,9 @@ public class LuceneAdapter {
                 QueryScorer scorer = new QueryScorer(queryExpression);
                 final IListWriter result = vf.listWriter();
 
+                // we hi-jack the formatter interface to iterate over all the terms
+                // in order of appearance and acquire their original offsets in the document
+                // as a side-effect.
                 Formatter formatter = new Formatter() {
                     @Override
                     public String highlightTerm(String originalText, TokenGroup tokenGroup) {
@@ -247,7 +254,8 @@ public class LuceneAdapter {
                 return result.done();
             }
             
-        } catch (IOException e){
+        } 
+        catch (IOException e){
             throw RuntimeExceptionFactory.io(vf.string(e.getMessage()), null, null);
         }
         catch (ParseException e) {
@@ -456,30 +464,33 @@ public class LuceneAdapter {
         return analyzerMap;
     }
 
+    private static class RascalBasedAnalyzer extends Analyzer {
+        private final Tokenizer tokens;
+        private final TokenStream filtered;
+
+        public RascalBasedAnalyzer(IConstructor tokenizer, IList filters) {
+            tokens = makeTokenizer(tokenizer);
+            TokenStream stream = tokens;
+
+            for (IValue elem : filters) {
+                stream = makeFilter(stream, (IConstructor) elem);
+            }
+
+            filtered = stream;
+        }
+
+        @Override
+        protected TokenStreamComponents createComponents(String fieldName) {
+                return new TokenStreamComponents(tokens, filtered);
+        }
+    }
+
     private Analyzer makeFunctionAnalyzer(IConstructor tokenizer, IList filters) throws IOException {
-         return new Analyzer() {
-            private Tokenizer tokens = makeTokenizer(tokenizer);
-            private TokenStream stream = tokens;
-            final TokenStream filtered;
-
-            // instance initializer (!)
-            {
-                for (IValue elem : filters) {
-                    stream = makeFilter(stream, (IConstructor) elem);
-                }
-
-                filtered = stream;
-            }
-
-            @Override
-            protected TokenStreamComponents createComponents(String fieldName) {
-                    return new TokenStreamComponents(tokens, filtered);
-            }
-         };
+         return new RascalBasedAnalyzer(tokenizer, filters);
     }
 
     
-    private TokenStream makeFilter(TokenStream stream, IConstructor node) {
+    private static TokenStream makeFilter(TokenStream stream, IConstructor node) {
         switch (node.getName()) {
             case "filterClass":
                 return filterFromClass(stream, ((IString) node.get("filterClassName")).getValue());
@@ -499,14 +510,14 @@ public class LuceneAdapter {
         }
     }
 
-    private TokenStream makeEditFilter(TokenStream stream, IFunction function) {
+    private static TokenStream makeEditFilter(TokenStream stream, IFunction function) {
         return new TokenFilter(stream) {
             private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
             
             @Override
             public boolean incrementToken() throws IOException {
                 if (input.incrementToken()) {
-                    final IString token = vf.string(new String(termAtt.buffer(), 0, termAtt.length()));
+                    final IString token = IRascalValueFactory.getInstance().string(new String(termAtt.buffer(), 0, termAtt.length()));
 
                     try {
                         IString result = (IString) function.call(token);
@@ -532,7 +543,7 @@ public class LuceneAdapter {
         };
     }
     
-    private TokenStream makeTagFilter(TokenStream stream, IFunction function) {
+    private static TokenStream makeTagFilter(TokenStream stream, IFunction function) {
         return new TokenFilter(stream) {
             private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
             private final TypeAttribute typeAtt = addAttribute(TypeAttribute.class);
@@ -540,8 +551,8 @@ public class LuceneAdapter {
             @Override
             public boolean incrementToken() throws IOException {
                 if (input.incrementToken()) {
-                    final IString token = vf.string(new String(termAtt.buffer(), 0, termAtt.length()));
-                    final IString tag = vf.string(typeAtt.type());
+                    final IString token = IRascalValueFactory.getInstance().string(new String(termAtt.buffer(), 0, termAtt.length()));
+                    final IString tag = IRascalValueFactory.getInstance().string(typeAtt.type());
                     
                     try {
                         IString result = function.call(token, tag);
@@ -563,13 +574,13 @@ public class LuceneAdapter {
         };
     }
     
-    private TokenStream makeRemoveFilter(TokenStream stream, IFunction function) {
+    private static TokenStream makeRemoveFilter(TokenStream stream, IFunction function) {
         return new FilteringTokenFilter(stream) {
             private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
             
             @Override
             protected boolean accept() throws IOException {
-                final IString token = vf.string(new String(termAtt.buffer(), 0, termAtt.length()));
+                final IString token = IRascalValueFactory.getInstance().string(new String(termAtt.buffer(), 0, termAtt.length()));
 
                 try {
                     IBool result = function.call(token);
@@ -584,7 +595,7 @@ public class LuceneAdapter {
         };
     }
     
-    private TokenStream makeSplitFilter(TokenStream stream, IFunction function) {
+    private static TokenStream makeSplitFilter(TokenStream stream, IFunction function) {
         return new TokenFilter(stream) {
             private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
             private PositionIncrementAttribute posAttr = addAttribute(PositionIncrementAttribute.class);
@@ -600,7 +611,7 @@ public class LuceneAdapter {
                 }
                 
                 if (input.incrementToken()) {
-                    final IString token = vf.string(new String(termAtt.buffer(), 0, termAtt.length()));
+                    final IString token = IRascalValueFactory.getInstance().string(new String(termAtt.buffer(), 0, termAtt.length()));
 
                     try {
                         backLog = function.call(token);
@@ -640,7 +651,7 @@ public class LuceneAdapter {
         };
     }
     
-    private TokenStream makeSynonymFilter(TokenStream stream, IFunction function) {
+    private static TokenStream makeSynonymFilter(TokenStream stream, IFunction function) {
         return new TokenFilter(stream) {
             private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
             private PositionIncrementAttribute posAttr = addAttribute(PositionIncrementAttribute.class);
@@ -654,7 +665,7 @@ public class LuceneAdapter {
                 }
                 
                 if (input.incrementToken()) {
-                    final IString token = vf.string(new String(termAtt.buffer(), 0, termAtt.length()));
+                    final IString token = IRascalValueFactory.getInstance().string(new String(termAtt.buffer(), 0, termAtt.length()));
 
                     try {
                         backLog = function.call(token);
@@ -690,7 +701,7 @@ public class LuceneAdapter {
         };
     }
 
-    private Tokenizer makeTokenizer(IConstructor node) {
+    private static Tokenizer makeTokenizer(IConstructor node) {
         switch (node.getName()) {
             case "tokenizerClass":
                 return tokenizerFromClass(((IString) node.get("tokenizerClassName")).getValue());
@@ -701,7 +712,7 @@ public class LuceneAdapter {
         }
     }
 
-    private Tokenizer makeTokenizer(final IFunction function) {
+    private static Tokenizer makeTokenizer(final IFunction function) {
         return new Tokenizer() {
             private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
             private final TypeAttribute typeAtt = addAttribute(TypeAttribute.class);
@@ -718,7 +729,7 @@ public class LuceneAdapter {
             @Override
             public boolean incrementToken() throws IOException {
                 if (result == null) {
-                    IString parameter = vf.string(Prelude.consumeInputStream(input));
+                    IString parameter = IRascalValueFactory.getInstance().string(Prelude.consumeInputStream(input));
                     IList terms = function.call(parameter);
                     result = terms.iterator();
                 }
@@ -740,10 +751,10 @@ public class LuceneAdapter {
         };
     }
 
-    private TokenStream filterFromClass(TokenStream stream, String filterClass) {
+    private static TokenStream filterFromClass(TokenStream stream, String filterClass) {
         try {
             @SuppressWarnings("unchecked")
-            Class<TokenStream> cls = (Class<TokenStream>) getClass().getClassLoader().loadClass(filterClass);
+            Class<TokenStream> cls = (Class<TokenStream>) LuceneAdapter.class.getClassLoader().loadClass(filterClass);
             
            return cls.getConstructor(TokenStream.class).newInstance(stream);
         }
@@ -752,18 +763,18 @@ public class LuceneAdapter {
         }
     }
     
-    private Analyzer analyzerFromClass(String analyzerClass) {
+    private static Analyzer analyzerFromClass(String analyzerClass) {
         return fromClass(Analyzer.class, analyzerClass);
     }
     
-    private Tokenizer tokenizerFromClass(String analyzerClass) {
+    private static Tokenizer tokenizerFromClass(String analyzerClass) {
         return fromClass(Tokenizer.class, analyzerClass);
     }
     
-    private <T> T fromClass(Class<T> clz, String name) {
+    private static <T> T fromClass(Class<T> clz, String name) {
         try {
             @SuppressWarnings("unchecked")
-            Class<T> cls = (Class<T>) getClass().getClassLoader().loadClass(name);
+            Class<T> cls = (Class<T>) LuceneAdapter.class.getClassLoader().loadClass(name);
             
            return cls.getConstructor().newInstance();
         }
@@ -1002,13 +1013,23 @@ public class LuceneAdapter {
 
         @Override
         public void deleteFile(String name) throws IOException {
+            var l = location(name);
+            if (!reg.exists(l)) {
+                throw new FileNotFoundException(l.toString());
+            }
             reg.remove(location(name), true); 
         }
 
         @Override
         public long fileLength(String name) throws IOException {
             try {
-                return Prelude.__getFileSize(vf, location(name)).longValue();
+                ISourceLocation loc = location(name);
+
+                if (!reg.exists(loc)) {
+                    throw new FileNotFoundException(loc.toString());
+                }
+
+                return Prelude.__getFileSize(vf, loc).longValue();
             }
             catch (URISyntaxException e) {
                 throw new IOException(e);
@@ -1017,6 +1038,11 @@ public class LuceneAdapter {
 
         @Override
         public IndexOutput createOutput(String name, IOContext context) throws IOException {
+            var l = location(name);
+            if (reg.exists(l)) {
+                throw new FileAlreadyExistsException(l.toString());
+            }
+
             return new SourceLocationIndexOutput(location(name));
         }
 
@@ -1038,26 +1064,80 @@ public class LuceneAdapter {
             }
         }
 
+        /**
+         * {@see org.apache.lucene.store.FSDirectory#sync(Collection<String> names)}
+         */
         @Override
         public void sync(Collection<String> names) throws IOException {
-            // TODO; need sync support in URIResolverResistry
-            // this is to make sure memory mapped files are written to disk
+            // FileChannels may end up in memory only and cause race conditions in the way
+            // that lucene uses their disk-based version. Forcing Java's FileChannels to disk is 
+            // originally meant for creating safe points against OS or hardware crashes.
+
+            // Lucene is guaranteed to call `sync` at the right times to prevent the very races
+            // it produces by itself on the contents of FileChannels
+            for (String fileName : names) {
+                sync(location(fileName));
+            }
+        }
+
+        /**
+         * TODO: add this method to the URIResolverRegistry in the Rascal project
+         */
+        private void sync(ISourceLocation loc) throws IOException {
+            // For directories we need a readable channel and for file a writeable channel
+            // {@see org.apache.lucene.store.FSDirectory#sync(Collection<String> names)}
+
+            if (reg.isDirectory(loc) && reg.supportsReadableFileChannel(loc)) {
+                try (FileChannel channel = reg.getReadableFileChannel(loc)) {
+                    channel.force(true);
+                }
+                catch (IOException e) {
+                    if (Constants.WINDOWS) {
+                        // this happens on Windows and should be ignored.
+                        return;
+                    }
+                    
+                    // rethrow-with-cause for linux, mac and anything else
+                    throw new IOException(e);
+                }
+            }
+            else if (reg.isFile(loc) && reg.supportsWritableFileChannel(loc)) {
+                try (FileChannel channel = reg.getWriteableFileChannel(loc, false)) {
+                    channel.force(true);
+                }
+            }
         }
 
         @Override
         public void syncMetaData() throws IOException {
-            // TODO; need sync support in URIResolverResistry
-            // this is to make sure memory mapped files are written to disk
+            sync(Arrays.stream(reg.listEntries(src)).collect(Collectors.toList())); 
+            sync(src);
         }
 
         @Override
         public void rename(String source, String dest) throws IOException {
+            var sourceLoc = location(source);
+            var destLoc = location(dest);
+
+            if (reg.exists(destLoc)) {
+                throw new FileAlreadyExistsException(destLoc.toString());
+            }
+
+            if (!reg.exists(sourceLoc)) {
+                throw new FileNotFoundException(sourceLoc.toString());
+            }
+
             reg.rename(location(source), location(dest), true);
         }
 
         @Override
         public IndexInput openInput(String name, IOContext context) throws IOException {
-            return new SourceLocationIndexInput(location(name));
+            var nameLoc = location(name);
+            if (!reg.exists(nameLoc)) {
+                throw new FileNotFoundException(nameLoc.toString());
+            }
+
+            return new SourceLocationIndexInput(nameLoc);
         }
 
         @Override
