@@ -12,6 +12,7 @@
  */
 package analysis.text.stemming;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,13 +54,13 @@ public class Snowball {
             SnowballProgram program = stemmers.get(name);
 
             if (program == null) {
-                program = (SnowballProgram) Class.forName("org.tartarus.snowball.ext." + capitalize(name) + "Stemmer").newInstance();
+                program = (SnowballProgram) Class.forName("org.tartarus.snowball.ext." + capitalize(name) + "Stemmer").getConstructor().newInstance();
                 stemmers.put(name, program);
             }
             
             return program;
         }
-        catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+        catch (InstantiationException | IllegalAccessException | ClassNotFoundException | InvocationTargetException | NoSuchMethodException e) {
             throw RuntimeExceptionFactory.illegalArgument(language, null, null);
         }
     }
