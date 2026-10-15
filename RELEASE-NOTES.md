@@ -1,7 +1,7 @@
 # 0.1.2
 
 * Remove all uses of annotations
-* Updated `rascal` to version 0.43.0 and `rascal-maven-plugin` to version 0.32.1
+* Updated `rascal` to version 0.43.0 and `rascal-maven-plugin` to version 0.32.2
 
 # 0.1.1
 
