@@ -43,7 +43,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <lucene-version>7.5.0</lucene-version>
         <rascal-version>0.43.0</rascal-version>
-        <rascal-maven-version>0.32.1</rascal-maven-version>
+        <rascal-maven-version>0.32.2</rascal-maven-version>
         <maven.compiler.release>11</maven.compiler.release>
     </properties>
 
